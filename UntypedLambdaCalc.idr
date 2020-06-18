@@ -5,7 +5,7 @@
 V : Type
 V = String
 
--- Lists are multisets to help mathematicians (but not really).
+-- Lists are Multisets to help mathematicians (but not really).
 Multiset : Type -> Type
 Multiset = List
 
@@ -37,23 +37,23 @@ sub (Abs x m) = [Abs x m] ++ sub m
 |||  Let X denote {x₂, ..., xₙ}.
 |||  (1) (Vacuous) ∀x.P(x) ≡ ⊤ where x∈Ø.
 |||  (2) (Union) P(x₁) ≡ ⊤ ∧ ∀x.P(x) ≡ ⊤, x∈X ⇒ ∀x.P(x) ≡ ⊤, x∈x₁⋃X.
-data All : {a : Type} -> (P : a -> Type) -> List a -> Type where
+data All : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
   Nil : {P : a -> Type} -> All P []
-  (::) : {x : a} -> {P : a -> Type} -> {xs : List a} -> 
+  (::) : {x : a} -> {P : a -> Type} -> {xs : Multiset a} -> 
          P x -> All P xs -> All P (x :: xs)
 
 ||| A constructive proof that ∃x.P(x) holds where x∈X.
 |||  Let X denote {x₂, ..., xₙ}.
 |||  (1) (Basis) P(x₁) ≡ ⊤ ⇒ ∃x.P(x), x∈x₁⋃X.
 |||  (2) (Union) ∃x.P(x) ≡ ⊤, x∈X ⇒ ∃x.P(x) ≡ ⊤, x∈x₁⋃X.
-data Any : {a : Type} -> (P : a -> Type) -> List a -> Type where
-  Here : {a : Type} -> {P : a -> Type} -> {xs : List a} -> 
+data Any : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
+  Here : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
          P x -> Any P (x :: xs)
-  There : {a : Type} -> {P : a -> Type} -> {xs : List a} -> 
+  There : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
           Any P xs -> Any P (x :: xs)
 
 ||| A constructive proof that x∈X.
-In : {a : Type} -> (x : a) -> (xs : List a) -> Type
+In : {a : Type} -> (x : a) -> (xs : Multiset a) -> Type
 In x xs = Any (\y => x = y) xs
 
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
