@@ -77,6 +77,7 @@ data Any : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
   There : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
           Any P xs -> Any P (x :: xs)
 
+||| A constructive proof that x∈X.
 In : {a : Type} -> (x : a) -> (xs : Multiset a) -> Type
 In x xs = Any (\y => x = y) xs
 
@@ -87,8 +88,8 @@ reflSubλ (App x y) = Here Refl
 reflSubλ (Abs x y) = Here Refl
 
 ||| Transitivity Lemma. x∈sub(y) ∧ y∈sub(z) ⇒ x∈sub(z).
-transSubλ : (x, y, z : Λ) ->
-               (prf1: In x (sub y)) -> (prf2 : In y (sub z)) -> In x (sub z)
+transSubλ : (x, y, z : Λ) -> (prf1: In x (sub y)) -> 
+             (prf2 : In y (sub z)) -> In x (sub z)
 transSubλ (Var x) (Var y) (Var z) (Here w) (Here s) = 
   let p1 = trans w s
   in rewrite p1 in Here Refl
@@ -118,7 +119,7 @@ transSubλ (Var x) (App y w) (App z s) (There t) (Here u) =
       p3 = replace {P = \k => Any (\y1 => Var x = y1) (sub k ++ sub w)} p1 t
       p4 = replace {P = \k => Any (\y1 => Var x = y1) (sub z ++ sub k)} p2 p3
   in There p4
-transSubλ (Var x) (App y w) (App z s) (There t) (There u) = ?test2
+transSubλ (Var x) (App y w) (App z s) (There t) (There u) = There ?test
 transSubλ (Var x) (App y w) (Abs z s) prf1 prf2 = ?test_5
 transSubλ (Var x) (Abs y w) z prf1 prf2 = ?test_6
 transSubλ (App x w) y z prf1 prf2 = ?test_2
