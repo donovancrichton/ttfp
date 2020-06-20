@@ -143,6 +143,7 @@ inAppImpliesLorR i (k :: ks) js (There x) =
        Left r => Left (There r)
        Right l => Right l
 
+
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
 reflSubλ : (x : Λ) -> In x (sub x)
 reflSubλ (Var x) = Here Refl
@@ -152,41 +153,33 @@ reflSubλ (Abs x y) = Here Refl
 ||| Transitivity Lemma. x∈sub(y) ∧ y∈sub(z) ⇒ x∈sub(z).
 transSubλ : (x, y, z : Λ) -> (prf1: In x (sub y)) -> 
              (prf2 : In y (sub z)) -> In x (sub z)
-transSubλ (Var x) (Var y) (Var z) (Here w) (Here s) = 
-  let p1 = trans w s
-  in rewrite p1 in Here Refl
-transSubλ (Var x) (Var y) (Var z) (Here w) (There s) = 
-  rewrite w in There s
-transSubλ (Var x) (Var y) (Var z) (There w) prf2 = There w
-transSubλ (Var x) (Var y) (App z w) (Here s) (Here t) = 
-  let p1 = trans s t
-  in rewrite p1 in Here Refl
+transSubλ (Var x) (Var y) (Var z) (Here w) prf2 = 
+  rewrite w in prf2
+transSubλ (Var x) (Var y) (Var z) (There w) prf2 = void (notInEmpty w)
+transSubλ (Var x) (Var y) (App z w) (Here s) (Here t) = void (uninhabited t)
 transSubλ (Var x) (Var y) (App z w) (Here s) (There t) = 
   rewrite s in There t
-transSubλ (Var x) (Var y) (App z w) (Here s) prf2 = 
-  rewrite s in prf2
-transSubλ (Var x) (Var y) (App z w) (There s) prf2 impossible
+transSubλ (Var x) (Var y) (App z w) (There s) prf2 = void (notInEmpty s)
 transSubλ (Var x) (Var y) (Abs z w) (Here s) prf2 = 
   rewrite s in prf2
-transSubλ (Var x) (Var y) (ULC.Abs z w) (There s) prf2 impossible
-transSubλ (Var x) (App y w) (Var z) (Here s) prf2 =
-  rewrite s in prf2
-transSubλ (Var x) (App y w) (Var z) (There s) (Here t) = 
-  Here $ void (uninhabited t)
-transSubλ (Var x) (App y w) (Var z) (There s) (There t) impossible
-transSubλ (Var x) (App y w) (App z s) (Here t) prf2 = void (uninhabited t)
-transSubλ (Var x) (App y w) (App z s) (There t) (Here u) =
-  let p1 = fst $ appInjective u
-      p2 = snd $ appInjective u
-      p3 = replace {P = \k => Any (\y1 => Var x = y1) (sub k ++ sub w)} p1 t
-      p4 = replace {P = \k => Any (\y1 => Var x = y1) (sub z ++ sub k)} p2 p3
-  in There p4
-transSubλ (Var x) (App y w) (App z s) (There t) (There u) = There ?test
-transSubλ (Var x) (App y w) (Abs z s) prf1 prf2 = ?test_5
-transSubλ (Var x) (Abs y w) z prf1 prf2 = ?test_6
-transSubλ (App x w) y z prf1 prf2 = ?test_2
-transSubλ (Abs x w) y z prf1 prf2 = ?test_3
-
+transSubλ (Var x) (Var y) (Abs z w) (There s) prf2 = void (notInEmpty s)
+transSubλ (Var x) (App y w) (Var z) (Here s) prf2 = void (uninhabited s)
+transSubλ (Var x) (App y w) (Var z) (There s) (Here t) = void (uninhabited t)
+transSubλ (Var x) (App y w) (Var z) (There s) (There t) = void (notInEmpty t)
+transSubλ (Var x) (App y w) (App q r) (Here s) prf2 = void (uninhabited s)
+transSubλ (Var x) (App y w) (App q r) (There s) (Here t) = 
+  let p1 = appInjective t
+  in rewrite sym (fst p1) in rewrite sym (snd p1) in There s
+transSubλ (Var x) (App y w) (App q r) (There s) (There t) = 
+  let p1 = inAppImpliesLorR (Var x) (sub y) (sub w) s
+      p2 = inAppImpliesLorR (App y w) (sub q) (sub r) t
+  in
+  case (p1, p2, sub y, sub w, sub q, sub r) of
+    (p3, p4, h, i, j, k) => ?test
+transSubλ (Var x) (App y w) (Abs q r) prf1 prf2 = ?transSubλ_rhs_7
+transSubλ (Var x) (Abs y w) z prf1 prf2 = ?transSubλ_rhs_6
+transSubλ (App x w) y z prf1 prf2 = ?transSubλ_rhs_2
+transSubλ (Abs x w) y z prf1 prf2 = ?transSubλ_rhs_3
 
 testExp : Λ
 testExp = Abs "x" (Var "y") 
