@@ -20,28 +20,35 @@ data Λ : Type where
  App : Λ -> Λ -> Λ
  Abs : V -> Λ -> Λ
 
------- Proofs on Λ data constructors -------------
+||| Proof that ∀x, y, z. Var(x) ≡ App(y, z) ⇒ ⊥.
 Uninhabited (ULC.Var x = ULC.App y z) where
   uninhabited Refl impossible
 
+||| Proof that ∀x, y, z. App(x, y) ≡ Var(z) ⇒ ⊥.
 Uninhabited (ULC.App x y = ULC.Var z) where
   uninhabited Refl impossible
 
+||| Proof that ∀x, y, z. Var(x) ≡ Abs(y, z) ⇒ ⊥.
 Uninhabited (ULC.Var x = ULC.Abs y z) where
   uninhabited Refl impossible
 
+||| Proof that ∀x, y, z. Abs(x, y) ≡ Var(z) ⇒ ⊥.
 Uninhabited (ULC.Abs x y = ULC.Var z) where
   uninhabited Refl impossible
 
+||| Proof that ∀x, y, z. App(x, y) ≡ Abs(z, w) ⇒ ⊥.
 Uninhabited (ULC.App x y = ULC.Abs z w) where
   uninhabited Refl impossible
 
+||| Proof that ∀x, y, z. Abs(x, y) ≡ App(z, w) ⇒ ⊥.
 Uninhabited (ULC.Abs x y = ULC.App z w) where
   uninhabited Refl impossible
 
+||| Proof that App(x, y) ≡ App(q, r) -> x ≡ q ∧ y ≡ r.
 appInjective : (prf : ULC.App x y = ULC.App q r) -> (x = q, y = r)
 appInjective Refl = (Refl, Refl)
 
+||| Proof that Abs(x, y) ≡ Abs(q, r) -> x ≡ q ∧ y ≡ r.
 absInjective : (prf : ULC.Abs x y = ULC.Abs q r) -> (x = q, y = r)
 absInjective Refl = (Refl, Refl)
 
