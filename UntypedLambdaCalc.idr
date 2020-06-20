@@ -72,14 +72,43 @@ data All : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
 |||  (1) (Basis) P(x₁) ≡ ⊤ ⇒ ∃x.P(x), x∈x₁⋃X.
 |||  (2) (Union) ∃x.P(x) ≡ ⊤, x∈X ⇒ ∃x.P(x) ≡ ⊤, x∈x₁⋃X.
 data Any : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
-  Here : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
+  Here : {a : Type} -> {x : a} -> {P : a -> Type} -> {xs : Multiset a} -> 
          P x -> Any P (x :: xs)
-  There : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
+  There : {a : Type} -> {x : a} -> {P : a -> Type} -> {xs : Multiset a} -> 
           Any P xs -> Any P (x :: xs)
 
 ||| A constructive proof that x∈X.
 In : {a : Type} -> (x : a) -> (xs : Multiset a) -> Type
 In x xs = Any (\y => x = y) xs
+
+-- Proof that x∈X where X ≡ Ø ⇒ ⊥.
+notInEmpty : Not (In x [])
+notInEmpty (Here _) impossible
+notInEmpty (There _) impossible
+
+-- Proof that ∃x. x∈X where x ≡ Ø ⇒ ⊥.
+notAnyEmpty : {P : a -> Type} -> Not (Any P [])
+notAnyEmpty (Here _) impossible
+notAnyEmpty (There _) impossible
+
+
+
+inEitherLorRimpliesInApp : (i : a) -> (xs, ys : Multiset a) -> 
+                           Either (In i xs) (In i ys) -> In i (xs ++ ys)
+inEitherLorRimpliesInApp i [] [] (Left p) = p
+inEitherLorRimpliesInApp i [] (y :: ys) (Left p) = void (notAnyEmpty p)
+inEitherLorRimpliesInApp i [] ys (Right p) = p
+inEitherLorRimpliesInApp i (x :: xs) ys p = ?inEitherLorRimpliesInApp_rhs_2
+
+inAppImpliesLorR : (i : a) -> (xs, ys : Multiset a) -> In i (xs ++ ys) -> 
+                   Either (In i xs) (In i ys)
+inAppImpliesLorR i [] ys prf = Right prf
+inAppImpliesLorR i (k :: ks) js (Here x) = Left (Here x)
+inAppImpliesLorR i (k :: ks) js (There x) = 
+  let rec = inAppImpliesLorR i ks js x
+  in case rec of
+       Left r => ?check
+       Right l => Right l
 
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
 reflSubλ : (x : Λ) -> In x (sub x)
