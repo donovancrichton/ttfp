@@ -1,3 +1,5 @@
+module ULC
+
 %default total
 
 
@@ -19,28 +21,28 @@ data Λ : Type where
  Abs : V -> Λ -> Λ
 
 ------ Proofs on Λ data constructors -------------
-Uninhabited (Main.Var x = App y z) where
+Uninhabited (ULC.Var x = ULC.App y z) where
   uninhabited Refl impossible
 
-Uninhabited (App x y = Main.Var z) where
+Uninhabited (ULC.App x y = ULC.Var z) where
   uninhabited Refl impossible
 
-Uninhabited (Main.Var x = Main.Abs y z) where
+Uninhabited (ULC.Var x = ULC.Abs y z) where
   uninhabited Refl impossible
 
-Uninhabited (Main.Abs x y = Main.Var z) where
+Uninhabited (ULC.Abs x y = ULC.Var z) where
   uninhabited Refl impossible
 
-Uninhabited (Main.App x y = Main.Abs z w) where
+Uninhabited (ULC.App x y = ULC.Abs z w) where
   uninhabited Refl impossible
 
-Uninhabited (Main.Abs x y = Main.App z w) where
+Uninhabited (ULC.Abs x y = ULC.App z w) where
   uninhabited Refl impossible
 
-appInjective : (prf : Main.App x y = Main.App q r) -> (x = q, y = r)
+appInjective : (prf : ULC.App x y = ULC.App q r) -> (x = q, y = r)
 appInjective Refl = (Refl, Refl)
 
-absInjective : (prf : Main.Abs x y = Main.Abs q r) -> (x = q, y = r)
+absInjective : (prf : ULC.Abs x y = ULC.Abs q r) -> (x = q, y = r)
 absInjective Refl = (Refl, Refl)
 
 -- pretty printing for untyped λ calculus.
@@ -81,25 +83,49 @@ data Any : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
 In : {a : Type} -> (x : a) -> (xs : Multiset a) -> Type
 In x xs = Any (\y => x = y) xs
 
--- Proof that x∈X where X ≡ Ø ⇒ ⊥.
+||| Proof that x∈X where X ≡ Ø ⇒ ⊥.
 notInEmpty : Not (In x [])
 notInEmpty (Here _) impossible
 notInEmpty (There _) impossible
 
--- Proof that ∃x. x∈X where x ≡ Ø ⇒ ⊥.
+||| Proof that ∃x. x∈X where X ≡ Ø ⇒ ⊥.
 notAnyEmpty : {P : a -> Type} -> Not (Any P [])
 notAnyEmpty (Here _) impossible
 notAnyEmpty (There _) impossible
 
+||| Proof that ∃x. x∈X ⇒ x∈X⋃Y. (For ordered multisets)
+inLeftApp : (xs, ys : Multiset a) -> (prf : In x xs) -> In x (xs ++ ys)
+inLeftApp xs [] prf = rewrite appendNilRightNeutral xs in prf
+inLeftApp [] (y :: ys) prf = void (notInEmpty prf)
+inLeftApp (x :: xs) (y :: ys) (Here p) = Here p
+inLeftApp (x :: xs) (y :: ys) (There p) = 
+  let rec = inLeftApp (xs) (y :: ys) p
+  in There rec
 
+||| Proof that ∃x. x∈X ⇒ x∈Y⋃X. (For ordered multisets)
+inRightApp : (xs, ys : Multiset a) -> (prf : In x xs) -> In x (ys ++ xs) 
+inRightApp [] [] prf = prf
+inRightApp [] (x :: xs) prf = void (notInEmpty prf)
+inRightApp (x :: xs) [] prf = prf
+inRightApp (x :: xs) (y :: ys) prf = 
+  let rec = inRightApp (x :: xs) ys prf
+  in There rec
 
+||| Proof that x∈X ∨ x∈Y ⇒ x∈X⋃Y.
 inEitherLorRimpliesInApp : (i : a) -> (xs, ys : Multiset a) -> 
                            Either (In i xs) (In i ys) -> In i (xs ++ ys)
 inEitherLorRimpliesInApp i [] [] (Left p) = p
 inEitherLorRimpliesInApp i [] (y :: ys) (Left p) = void (notAnyEmpty p)
 inEitherLorRimpliesInApp i [] ys (Right p) = p
-inEitherLorRimpliesInApp i (x :: xs) ys p = ?inEitherLorRimpliesInApp_rhs_2
+inEitherLorRimpliesInApp i (x :: xs) [] (Left p) = 
+  let lemma1 = appendNilRightNeutral (x :: xs)
+  in rewrite lemma1 in p
+inEitherLorRimpliesInApp i (x :: xs) [] (Right p) = void (notAnyEmpty p)
+inEitherLorRimpliesInApp i p@(x :: xs) q@(y :: ys) (Left l) = inLeftApp p q l 
+inEitherLorRimpliesInApp i (x :: xs) (y :: ys) (Right r) = 
+  inRightApp (y :: ys) (x :: xs) r
 
+||| Proof that x∈X⋃Y ⇒ x∈X ∨ x∈Y.
 inAppImpliesLorR : (i : a) -> (xs, ys : Multiset a) -> In i (xs ++ ys) -> 
                    Either (In i xs) (In i ys)
 inAppImpliesLorR i [] ys prf = Right prf
@@ -107,7 +133,7 @@ inAppImpliesLorR i (k :: ks) js (Here x) = Left (Here x)
 inAppImpliesLorR i (k :: ks) js (There x) = 
   let rec = inAppImpliesLorR i ks js x
   in case rec of
-       Left r => ?check
+       Left r => Left (There r)
        Right l => Right l
 
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
@@ -135,7 +161,7 @@ transSubλ (Var x) (Var y) (App z w) (Here s) prf2 =
 transSubλ (Var x) (Var y) (App z w) (There s) prf2 impossible
 transSubλ (Var x) (Var y) (Abs z w) (Here s) prf2 = 
   rewrite s in prf2
-transSubλ (Var x) (Var y) (Main.Abs z w) (There s) prf2 impossible
+transSubλ (Var x) (Var y) (ULC.Abs z w) (There s) prf2 impossible
 transSubλ (Var x) (App y w) (Var z) (Here s) prf2 =
   rewrite s in prf2
 transSubλ (Var x) (App y w) (Var z) (There s) (Here t) = 
