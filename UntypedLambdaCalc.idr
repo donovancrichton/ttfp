@@ -143,6 +143,12 @@ inAppImpliesLorR i (k :: ks) js (There x) =
        Left r => Left (There r)
        Right l => Right l
 
+appLeftArgInSub : (x, y, z : Λ) -> (prf2 : In (App x y) (sub z)) ->
+                  In x (sub z)
+appLeftArgInSub x y (Var z) (Here w) = ?wait_1
+appLeftArgInSub x y (Var z) (There w) = ?wait_4
+appLeftArgInSub x y (App z w) prf2 = ?wait_2
+appLeftArgInSub x y (Abs z w) prf2 = ?wait_3
 
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
 reflSubλ : (x : Λ) -> In x (sub x)
@@ -170,12 +176,7 @@ transSubλ (Var x) (App y w) (App q r) (Here s) prf2 = void (uninhabited s)
 transSubλ (Var x) (App y w) (App q r) (There s) (Here t) = 
   let p1 = appInjective t
   in rewrite sym (fst p1) in rewrite sym (snd p1) in There s
-transSubλ (Var x) (App y w) (App q r) (There s) (There t) = 
-  let p1 = inAppImpliesLorR (Var x) (sub y) (sub w) s
-      p2 = inAppImpliesLorR (App y w) (sub q) (sub r) t
-  in
-  case (p1, p2, sub y, sub w, sub q, sub r) of
-    (p3, p4, h, i, j, k) => ?test
+transSubλ (Var x) (App y w) (App q r) (There s) (There t) = There ?test
 transSubλ (Var x) (App y w) (Abs q r) prf1 prf2 = ?transSubλ_rhs_7
 transSubλ (Var x) (Abs y w) z prf1 prf2 = ?transSubλ_rhs_6
 transSubλ (App x w) y z prf1 prf2 = ?transSubλ_rhs_2
