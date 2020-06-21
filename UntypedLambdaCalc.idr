@@ -86,6 +86,21 @@ data Any : {a : Type} -> (P : a -> Type) -> Multiset a -> Type where
   There : {a : Type} -> {x : a} -> {P : a -> Type} -> {xs : Multiset a} -> 
           Any P xs -> Any P (x :: xs)
 
+||| Proof that ∃x∈X.P(x) where X = Ø ⇒ ⊥.
+Uninhabited (Any p []) where
+  uninhabited prf impossible
+
+||| Proof that if X ≠ Ø and ∀x∈X.P(x) ≡ ⊤ then ∃x∈X.P(x) ≡ ⊤ must follow.
+allImpliesAny : {a : Type} -> {P : a -> Type} -> {xs : Multiset a} -> 
+                (prf1 : NonEmpty xs) -> (prf2 : All P xs) -> Any P xs
+allImpliesAny prf1 [] = absurd prf1
+allImpliesAny prf1 (x :: xs) = Here x
+
+||| Proof that ∃x∈X.P(x) ≡ ⊤ ⇒ X ≠ Ø.
+anyImpliesNonEmpty : {P : a -> Type} -> (prf : Any P xs) -> NonEmpty xs  
+anyImpliesNonEmpty (Here p) = IsNonEmpty
+anyImpliesNonEmpty (There p) = IsNonEmpty
+
 ||| A constructive proof that x∈X.
 In : {a : Type} -> (x : a) -> (xs : Multiset a) -> Type
 In x xs = Any (\y => x = y) xs
@@ -95,10 +110,6 @@ notInEmpty : Not (In x [])
 notInEmpty (Here _) impossible
 notInEmpty (There _) impossible
 
-||| Proof that ∃x. x∈X where X ≡ Ø ⇒ ⊥.
-notAnyEmpty : {P : a -> Type} -> Not (Any P [])
-notAnyEmpty (Here _) impossible
-notAnyEmpty (There _) impossible
 
 ||| Proof that ∃x. x∈X ⇒ x∈X⋃Y. (For ordered multisets)
 inLeftApp : (xs, ys : Multiset a) -> (prf : In x xs) -> In x (xs ++ ys)
@@ -112,7 +123,7 @@ inLeftApp (x :: xs) (y :: ys) (There p) =
 ||| Proof that ∃x. x∈X ⇒ x∈Y⋃X. (For ordered multisets)
 inRightApp : (xs, ys : Multiset a) -> (prf : In x xs) -> In x (ys ++ xs) 
 inRightApp [] [] prf = prf
-inRightApp [] (x :: xs) prf = void (notInEmpty prf)
+inRightApp [] (x :: xs) prf = absurd prf
 inRightApp (x :: xs) [] prf = prf
 inRightApp (x :: xs) (y :: ys) prf = 
   let rec = inRightApp (x :: xs) ys prf
@@ -122,12 +133,12 @@ inRightApp (x :: xs) (y :: ys) prf =
 inEitherLorRimpliesInApp : (i : a) -> (xs, ys : Multiset a) -> 
                            Either (In i xs) (In i ys) -> In i (xs ++ ys)
 inEitherLorRimpliesInApp i [] [] (Left p) = p
-inEitherLorRimpliesInApp i [] (y :: ys) (Left p) = void (notAnyEmpty p)
+inEitherLorRimpliesInApp i [] (y :: ys) (Left p) = absurd p
 inEitherLorRimpliesInApp i [] ys (Right p) = p
 inEitherLorRimpliesInApp i (x :: xs) [] (Left p) = 
   let lemma1 = appendNilRightNeutral (x :: xs)
   in rewrite lemma1 in p
-inEitherLorRimpliesInApp i (x :: xs) [] (Right p) = void (notAnyEmpty p)
+inEitherLorRimpliesInApp i (x :: xs) [] (Right p) = absurd p
 inEitherLorRimpliesInApp i p@(x :: xs) q@(y :: ys) (Left l) = inLeftApp p q l 
 inEitherLorRimpliesInApp i (x :: xs) (y :: ys) (Right r) = 
   inRightApp (y :: ys) (x :: xs) r
@@ -143,12 +154,9 @@ inAppImpliesLorR i (k :: ks) js (There x) =
        Left r => Left (There r)
        Right l => Right l
 
-appLeftArgInSub : (x, y, z : Λ) -> (prf2 : In (App x y) (sub z)) ->
-                  In x (sub z)
-appLeftArgInSub x y (Var z) (Here w) = ?wait_1
-appLeftArgInSub x y (Var z) (There w) = ?wait_4
-appLeftArgInSub x y (App z w) prf2 = ?wait_2
-appLeftArgInSub x y (Abs z w) prf2 = ?wait_3
+allSubExpInSub : (x, y : Λ) -> (prf : In x (sub y)) -> 
+                 All (\z => In z (sub x)) (sub y)
+allSubExpInSub x z prf = ?look
 
 ||| Reflexivity Lemma. ∀x∈Λ. x∈sub(x).
 reflSubλ : (x : Λ) -> In x (sub x)
@@ -162,7 +170,7 @@ transSubλ : (x, y, z : Λ) -> (prf1: In x (sub y)) ->
 transSubλ (Var x) (Var y) (Var z) (Here w) prf2 = 
   rewrite w in prf2
 transSubλ (Var x) (Var y) (Var z) (There w) prf2 = void (notInEmpty w)
-transSubλ (Var x) (Var y) (App z w) (Here s) (Here t) = void (uninhabited t)
+transSubλ (Var x) (Var y) (App z w) (Here s) (Here t) = absurd t
 transSubλ (Var x) (Var y) (App z w) (Here s) (There t) = 
   rewrite s in There t
 transSubλ (Var x) (Var y) (App z w) (There s) prf2 = void (notInEmpty s)
@@ -176,7 +184,10 @@ transSubλ (Var x) (App y w) (App q r) (Here s) prf2 = void (uninhabited s)
 transSubλ (Var x) (App y w) (App q r) (There s) (Here t) = 
   let p1 = appInjective t
   in rewrite sym (fst p1) in rewrite sym (snd p1) in There s
-transSubλ (Var x) (App y w) (App q r) (There s) (There t) = There ?test
+transSubλ (Var x) (App y w) (App q r) (There s) (There t) = 
+  let ss = inAppImpliesLorR (Var x) (sub y) (sub w) s
+      ts = inAppImpliesLorR (App y w) (sub q) (sub r) t
+  in ?test
 transSubλ (Var x) (App y w) (Abs q r) prf1 prf2 = ?transSubλ_rhs_7
 transSubλ (Var x) (Abs y w) z prf1 prf2 = ?transSubλ_rhs_6
 transSubλ (App x w) y z prf1 prf2 = ?transSubλ_rhs_2
