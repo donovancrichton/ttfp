@@ -297,13 +297,32 @@ transSubλ (App x y) (App j k) z (There p) prf2 with
           ih = transSubλ (App x y) k z r p1
       in ih
 transSubλ (App x y) (Abs j k) z (Here p) prf2 = absurd p
-transSubλ (App x y) (Abs j k) z (There p) prf2 = ?test
-transSubλ (Abs x w) y z prf1 prf2 = ?transSubλ_rhs_3
+transSubλ (App x y) (Abs j k) z (There p) prf2 = 
+  let p1 = absRightArg k z prf2
+      ih = transSubλ (App x y) k z p p1
+  in ih
+transSubλ (Abs x y) (Var w) z (Here p) prf2 = absurd p
+transSubλ (Abs x y) (Var w) z (There p) prf2 = absurd p
+transSubλ (Abs x y) (App j k) z (Here p) prf2 = absurd p
+transSubλ (Abs x y) (App j k) z (There p) prf2 with
+  (inAppLR (Abs x y) (sub j) (sub k) p)
+    | (Left l) = 
+      let p1 = appLeftArg j z prf2
+          ih = transSubλ (Abs x y) j z l p1
+      in ih
+    | (Right r) =
+      let p1 = appRightArg k z prf2
+          ih = transSubλ (Abs x y) k z r p1
+      in ih
+transSubλ (Abs x y) (Abs j k) z (Here p) prf2 = 
+  rewrite p in prf2
+transSubλ (Abs x y) (Abs j k) z (There p) prf2 = 
+  let p1 = absRightArg k z prf2
+      ih = transSubλ (Abs x y) k z p p1
+  in ih
 
 testExp : Λ
 testExp = Abs "x" (Var "y") 
-
-
 
 main : IO ()
 main = do
