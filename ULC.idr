@@ -3,6 +3,7 @@ module ULC
 import Data.List
 import Data.List.Elem
 import Data.List.Quantifiers
+import Decidable.Equality
 import Proofs
 
 %default total
@@ -185,6 +186,7 @@ propSubλ (Abs x y) =
     True  => [Var x]
     False => [Var x] ++ [y] ++ propSubλ y
 
+
 ||| remove all occurances of x∈X.
 remove : (Eq a) => a -> List a -> List a
 remove x [] = []
@@ -197,7 +199,6 @@ freeVar (Abs x y) = remove x (freeVar y)
 
 Closed : Λ -> Type
 Closed x = freeVar x = [] 
-
 
 testPropSub : Λ
 testPropSub = App (Var "y") (Abs "x" (App (Var "x") (Var "z")))
@@ -221,14 +222,13 @@ prfClosed = Refl
 prfClosed2 : Closed ULC.testClosed2
 prfClosed2 = Refl
 
-equivα : (x : Λ) -> V -> V -> Λ
-equivα (Var x) y z = if x == y then (Var z) else (Var x)
-equivα (App x w) y z = App (equivα x y z) (equivα w y z)
-equivα (Abs x w) y z = if x == y 
-                       then Abs z (equivα w y z) 
-                       else Abs x (equivα w y z)
+equivα : (x : Λ) -> (s, r : V) -> (prf : Not (Elem s (freeVar x))) -> Λ
+equivα (Var x) s r prf   = if x == s then (Var r) else (Var x)
+equivα (App x y) s r prf = App (equivα x s r prf) (equivα y s r prf)
+equivα (Abs x y) s r prf = if x == s 
+                           then Abs r (equivα y s r prf) 
+                           else Abs x (equivα y s r prf)
 
-testEquivα : 
 
 main : IO ()
 main = do
