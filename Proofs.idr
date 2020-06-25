@@ -36,10 +36,7 @@ elemAppLorR [] [] prf = absurd prf
 elemAppLorR [] _ prf = Right prf
 elemAppLorR (x :: xs) [] prf = 
   let prf' = replace {p = \q => Elem k q} (appendNilRightNeutral (x :: xs)) prf
-  in ?test
-  --where
-  --  prf' : Elem k (x :: xs)
-  --  prf' = replace {p = \q => Elem k q} (appendNilRightNeutral (x :: xs)) prf
+  in Left prf'
 elemAppLorR (x :: xs) _ Here = Left Here
 elemAppLorR (x :: xs) ys (There prf) =
   case ih of

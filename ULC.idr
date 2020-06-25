@@ -60,9 +60,21 @@ absElemjective Refl = (Refl, Refl)
 
 -- pretty printing for untyped λ calculus.
 implementation Show Λ where
-  show (Var x) = x
-  show (App m n) = "(" ++ show m ++ " " ++ show n ++ ")"
-  show (Abs x m) = "(λ" ++ x ++ "." ++ show m ++ ")"
+  show (Var x)   = x
+  show (App m n) = "" ++ show m ++ " " ++ show n ++ ""
+  show (Abs x m) = "λ" ++ x ++ "." ++ show m ++ ""
+
+implementation Eq Λ where
+  (Var x)   == (Var y)   = x == y
+  (Var _)   == (App _ _) = False
+  (Var _)   == (Abs _ _) = False
+  (App _ _) == (Var _)   = False
+  (App x y) == (App z w) = x == z && y == w 
+  (App _ _) == (Abs _ _) = False
+  (Abs _ _) == (Var _)   = False
+  (Abs _ _) == (App _ _) = False
+  (Abs x y) == (Abs z w) = x == z && y == w
+  x /= y                 = not (x == y)
 
 ||| Multiset of subterms of Λ.
 |||  Let V denote a set of symbols.
@@ -137,8 +149,8 @@ absRightArg y (Abs z w) (There prf) = There $ absRightArg y w prf
 ||| Transitivity Lemma. x∈sub(y) ∧ y∈sub(z) ⇒ x∈sub(z).
 transSubλ : (x, y, z : Λ) -> (prf1: Elem x (sub y)) -> 
             (prf2 : Elem y (sub z)) -> Elem x (sub z)
-transSubλ (Var _) (Var y) _ Here prf2 = prf2
-transSubλ _ (Var y) _ (There prf) _ = absurd prf
+transSubλ (Var _) (Var _) _ Here prf2 = prf2
+transSubλ _ (Var _) _ (There prf) _ = absurd prf
 transSubλ (App _ _) (App _ _) _ Here prf2 = prf2
 transSubλ x (App y w) z (There prf) prf2 = 
   case elemAppLorR (sub y) (sub w) prf of
@@ -156,10 +168,70 @@ transSubλ x (Abs y w) z (There prf) prf2 =
       prf3 = absRightArg w z prf2
   in transSubλ x w z prf prf3
 
-testExp : Λ
-testExp = Abs "x" (Var "y") 
+propSubλ : (1 x : Λ) -> List Λ
+propSubλ (Var x) = []
+propSubλ (App x y) = 
+  case x == (App x y) of
+    True => 
+      case y == (App x y) of
+        True => []
+        False => [y] ++ propSubλ y
+    False =>
+      case y == (App x y) of
+        True  => [x] ++ propSubλ x
+        False => [x, y] ++ propSubλ x ++ propSubλ y
+propSubλ (Abs x y) =
+  case y == (Abs x y) of
+    True  => [Var x]
+    False => [Var x] ++ [y] ++ propSubλ y
+
+||| remove all occurances of x∈X.
+remove : (Eq a) => a -> List a -> List a
+remove x [] = []
+remove x (y :: xs) = if x == y then remove x xs else y :: remove x xs
+
+freeVar : (1 x : Λ) -> List V
+freeVar (Var x) = [x]
+freeVar (App x y) = freeVar x ++ freeVar y
+freeVar (Abs x y) = remove x (freeVar y)
+
+Closed : Λ -> Type
+Closed x = freeVar x = [] 
+
+
+testPropSub : Λ
+testPropSub = App (Var "y") (Abs "x" (App (Var "x") (Var "z")))
+
+testFreeVar : Λ
+testFreeVar = Abs "x" (App (Var "x") (Var "y"))
+
+testFreeVar2 : Λ
+testFreeVar2 = App (Var "x") (Abs "x" (Var "y"))
+
+testClosed : Λ
+testClosed = Abs "x" (Abs "y" (Abs "z" (App (Var "x") 
+  (App (Var "x") (Var "y")))))
+
+testClosed2 : Λ
+testClosed2 = Abs "x" (Abs "y" (App (Var "x") (App (Var "x") (Var "y"))))
+
+prfClosed : Closed ULC.testClosed
+prfClosed = Refl
+
+prfClosed2 : Closed ULC.testClosed2
+prfClosed2 = Refl
+
+equivα : (x : Λ) -> V -> V -> Λ
+equivα (Var x) y z = if x == y then (Var z) else (Var x)
+equivα (App x w) y z = App (equivα x y z) (equivα w y z)
+equivα (Abs x w) y z = if x == y 
+                       then Abs z (equivα w y z) 
+                       else Abs x (equivα w y z)
+
+testEquivα : 
 
 main : IO ()
 main = do
-  putStrLn $ show testExp
-  putStrLn $ show $ sub testExp
+  putStrLn $ show $ freeVar testFreeVar
+  putStrLn $ show $ freeVar testFreeVar2
+
