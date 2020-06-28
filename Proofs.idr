@@ -45,3 +45,14 @@ elemAppLorR (x :: xs) ys (There prf) =
   where
     ih : Either (Elem k xs) (Elem k ys)
     ih = elemAppLorR xs ys prf
+
+public export
+notElemAppLeft : (ys : List a) -> (prf : Not (Elem x (xs ++ ys))) -> 
+                 Not (Elem x xs)
+notElemAppLeft ys prf val = prf $ elemAppLeft ys val
+
+public export
+notElemAppRight : {ys : List a} -> (xs : List a) -> 
+                  (prf : Not (Elem x (xs ++ ys))) -> Not (Elem x ys)
+notElemAppRight xs prf val = prf $ elemAppRight xs val
+

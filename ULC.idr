@@ -169,6 +169,11 @@ transSubλ x (Abs y w) z (There prf) prf2 =
       prf3 = absRightArg w z prf2
   in transSubλ x w z prf prf3
 
+||| Multiset of proper sub-terms for Λ.
+||| (1) (Variable)    propSub(x) ≡ Ø ∀x∈V.
+||| (2) (Application) propSub(App(x, y)) ≡ propSub(x) ⋃ propSub(y) ∧
+|||                   propSub(x) ≠ App(x, y) ∧ propSub(y) ≠ App(x, y).
+||| (3) (Abstraction) propSub(Abs(x, y)) ≡ propSub(y) ∧ propSub(y) ≠ Abs(x, y).
 propSubλ : (1 x : Λ) -> List Λ
 propSubλ (Var x) = []
 propSubλ (App x y) = 
@@ -192,13 +197,17 @@ remove : (Eq a) => a -> List a -> List a
 remove x [] = []
 remove x (y :: xs) = if x == y then remove x xs else y :: remove x xs
 
-freeVar : (1 x : Λ) -> List V
-freeVar (Var x) = [x]
-freeVar (App x y) = freeVar x ++ freeVar y
-freeVar (Abs x y) = remove x (freeVar y)
+||| Free variables in Λ.
+||| (1) (Variable) if x∈V then fv(x) ≡ {x}.
+||| (2) (Application) fv(App(x, y)) ≡ fv(x) ⋃ fv(y).
+||| (3) (Application) fv(Abs(x, y)) ≡ fv(y) \ {x}.
+fv : (1 x : Λ) -> List V
+fv (Var x) = [x]  
+fv (App x y) = fv x ++ fv y
+fv (Abs x y) = remove x (fv y)
 
 Closed : Λ -> Type
-Closed x = freeVar x = [] 
+Closed x = fv x = [] 
 
 testPropSub : Λ
 testPropSub = App (Var "y") (Abs "x" (App (Var "x") (Var "z")))
@@ -222,16 +231,20 @@ prfClosed = Refl
 prfClosed2 : Closed ULC.testClosed2
 prfClosed2 = Refl
 
-equivα : (x : Λ) -> (s, r : V) -> (prf : Not (Elem s (freeVar x))) -> Λ
+equivα : (x : Λ) -> (s, r : V) -> (prf : Not (Elem s (fv x))) -> Λ
 equivα (Var x) s r prf   = if x == s then (Var r) else (Var x)
-equivα (App x y) s r prf = App (equivα x s r prf) (equivα y s r prf)
-equivα (Abs x y) s r prf = if x == s 
-                           then Abs r (equivα y s r prf) 
-                           else Abs x (equivα y s r prf)
+equivα (App x y) s r prf = 
+  let prf1 = notElemAppLeft (fv y) prf
+      prf2 = notElemAppRight (fv x) prf
+  in App (equivα x s r prf1) (equivα y s r prf2)
+equivα (Abs x y) s r prf = if x == s
+                           then Abs r (equivα y s r ?t1)
+                           else Abs x (equivα y s r ?t2)
+
 
 
 main : IO ()
 main = do
-  putStrLn $ show $ freeVar testFreeVar
-  putStrLn $ show $ freeVar testFreeVar2
+  putStrLn $ show $ fv testFreeVar
+  putStrLn $ show $ fv testFreeVar2
 
